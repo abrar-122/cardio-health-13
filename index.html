@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CardioHealth Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    /* CSS Reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background-color: #f5f5f5;
+      line-height: 1.6;
+      touch-action: manipulation;
+    }
+    
+    /* Loader Styles (Minimized) */
+    #loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.2s ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .loader-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #d62828;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Main Container */
+    .container {
+      padding: 15px;
+      margin-bottom: 60px;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+    
+    /* Page Navigation */
+    .page {
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      transform: translateY(5px);
+    }
+    
+    .page.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    /* Header Styles */
+    h2 {
+      color: #d62828;
+      margin-bottom: 15px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 600;
+    }
+    
+    /* Form Elements */
+    input, select {
+      width: 100%;
+      padding: 12px 15px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: all 0.2s;
+      background-color: #fff;
+    }
+    
+    input:focus, select:focus {
+      border-color: #d62828;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(214, 40, 40, 0.2);
+    }
+    
+    button, .btn {
+      background-color: #d62828;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      width: 100%;
+      margin-top: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      display: block;
+    }
+    
+    button:hover, .btn:hover {
+      background-color: #b51e1e;
+      transform: translateY(-1px);
+    }
+    
+    button:active, .btn:active {
+      transform: translateY(0);
+      background-color: #9a1919;
+    }
+    
+    /* Vitals Grid */
+    .vitals {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 15px;
+    }
+    
+    .card {
+      background: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    
+    .card.warning {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+    }
+    
+    .card.danger {
+      background: #f8d7da;
+      border-left: 4px solid #dc3545;
+    }
+    
+    /* Status Indicators */
+    .status {
+      padding: 12px;
+      text-align: center;
+      border-radius: 8px;
+      margin: 15px 0;
+      font-weight: 500;
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .status.warning {
+      background: #fff3cd;
+      color: #856404;
+    }
+    
+    .status.danger {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    /* Navigation Bar */
+    .nav {
+      display: flex;
+      justify-content: space-around;
+      background: #fff;
+      padding: 8px 0;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      z-index: 1000;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      border-top: 1px solid #eee;
+    }
+    
+    .nav button {
+      background: none;
+      color: #555;
+      font-weight: 500;
+      padding: 8px 5px;
+      margin: 0;
+      flex: 1;
+      font-size: 13px;
+      border-radius: 0;
+      transition: all 0.2s;
+    }
+    
+    .nav button:hover {
+      color: #d62828;
+      background: none;
+      transform: none;
+    }
+    
+    .nav button.active {
+      color: #d62828;
+    }
+    
+    /* Alert Items */
+    .alert-item {
+      background: #fff;
+      padding: 12px;
+      margin: 10px 0;
+      border-left: 4px solid #ffc107;
+      border-radius: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      transition: all 0.2s;
+    }
+    
+    .alert-item:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .alert-item.emergency {
+      background: #fff;
+      border-left: 4px solid #dc3545;
+    }
+    
+    /* Map Container */
+    #map {
+      width: 100%;
+      height: 250px;
+      margin: 15px 0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    /* Patient Info */
+    .patient-info {
+      background: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .info-item {
+      font-size: 14px;
+    }
+    
+    .info-label {
+      font-weight: 500;
+      color: #555;
+      display: block;
+      margin-bottom: 2px;
+    }
+    
+    /* Responsive Adjustments */
+    @media (min-width: 768px) {
+      .container {
+        max-width: 600px;
+        margin: 0 auto 70px;
+        padding: 20px;
+      }
+      
+      h2 {
+        font-size: 24px;
+        margin-bottom: 20px;
+      }
+      
+      .nav button {
+        font-size: 14px;
+        padding: 10px 5px;
+      }
+      
+      #map {
+        height: 300px;
+      }
+    }
+    
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    /* Utility Classes */
+    .text-center {
+      text-align: center;
+    }
+    
+    .mt-10 {
+      margin-top: 10px;
+    }
+    
+    .mb-10 {
+      margin-bottom: 10px;
+    }
+    
+    .link {
+      color: #d62828;
+      text-decoration: none;
+      font-weight: 500;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    
+    .link:hover {
+      color: #b51e1e;
+      text-decoration: underline;
+    }
+    
+    /* Protocol Box */
+    .protocol {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      font-size: 14px;
+      border-left: 3px solid #6c757d;
+    }
+    
+    /* Additional Sensors */
+    .additional-sensors {
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+<!-- Loading Screen (Minimized) -->
+<div id="loader">
+  <div class="loader-spinner"></div>
+  <div>Loading Application...</div>
+</div>
+
+<!-- Main Container -->
+<div class="container">
+  <!-- Login Page -->
+  <div class="page active" id="loginPage">
+    <h2>Login to CardioHealth Tracker</h2>
+    <div id="loginForm">
+      <input type="email" id="email" placeholder="Email" autocomplete="username">
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+      <button id="loginBtn" class="btn">Login</button>
+      <div class="text-center mt-10">
+        <a href="#" id="showRegisterLink" class="link">Create new account</a>
+      </div>
+    </div>
+    
+    <div id="registerForm" style="display: none;">
+      <h2>Register New Account</h2>
+      <input type="text" id="fullName" placeholder="Full Name" autocomplete="name">
+      <input type="number" id="age" placeholder="Age">
+      <select id="gender">
+        <option value="">Select Gender</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+        <option value="other">Other</option>
+      </select>
+      <input type="email" id="newEmail" placeholder="Email" autocomplete="email">
+      <input type="password" id="newPassword" placeholder="Password" autocomplete="new-password">
+      <input type="password" id="confirmPassword" placeholder="Confirm Password" autocomplete="new-password">
+      <button id="registerBtn" class="btn">Register</button>
+      <div class="text-center mt-10">
+        <a href="#" id="showLoginLink" class="link">Already have an account? Login</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Page -->
+  <div class="page" id="dashboardPage">
+    <h2 id="welcomeMessage">Welcome</h2>
+    <div class="patient-info">
+      <h3>Patient Information</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Name:</span>
+          <span id="displayName">-</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Age:</span>
+          <span id="displayAge">-</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Gender:</span>
+          <span id="displayGender">-</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Email:</span>
+          <span id="displayEmail">-</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="vitals">
+      <div class="card" id="hrCard">
+        <strong>Heart Rate:</strong> <span id="hr">72 bpm</span>
+        <div class="protocol" id="hrProtocol"></div>
+      </div>
+      <div class="card" id="spo2Card">
+        <strong>SpO₂:</strong> <span id="spo2">98%</span>
+        <div class="protocol" id="spo2Protocol"></div>
+      </div>
+      <div class="card" id="bpCard">
+        <strong>Blood Pressure:</strong> <span id="bp">120/80</span>
+        <div class="protocol" id="bpProtocol"></div>
+      </div>
+      <div class="card" id="creatinineCard">
+        <strong>Creatinine:</strong> <span id="creatinine">0.9 mg/dL</span>
+        <div class="protocol" id="creatinineProtocol"></div>
+      </div>
+    </div>
+    
+    <div class="additional-sensors vitals">
+      <div class="card" id="emgCard">
+        <strong>Muscle Activity:</strong> <span id="emg">Normal</span>
+        <div class="protocol" id="emgProtocol"></div>
+      </div>
+      <div class="card" id="ecgCard">
+        <strong>ECG Status:</strong> <span id="ecg">Stable</span>
+        <div class="protocol" id="ecgProtocol"></div>
+      </div>
+    </div>
+    
+    <div class="status" id="heartStatus">Heart Status: Normal</div>
+    <button id="emergencyBtn" class="btn">Send Emergency Alert</button>
+  </div>
+
+  <!-- Alerts Page -->
+  <div class="page" id="alertsPage">
+    <h2>Alerts</h2>
+    <div id="alertsContainer">
+      <div class="alert-item">
+        <strong>Time:</strong> <span class="alert-time">10:32 AM</span><br>
+        <strong>Issue:</strong> <span class="alert-issue">High Blood Pressure</span><br>
+        <strong>Status:</strong> <span class="alert-status">Sent to Doctor</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location Page -->
+  <div class="page" id="locationPage">
+    <h2>Patient Location</h2>
+    <div id="map"></div>
+    <button id="updateLocationBtn" class="btn">Update My Location</button>
+    <div id="locationInfo" class="mt-10"></div>
+  </div>
+</div>
+
+<!-- Navigation Bar -->
+<div class="nav">
+  <button id="dashboardBtn" class="active">Dashboard</button>
+  <button id="alertsBtn">Alerts</button>
+  <button id="locationBtn">Location</button>
+  <button id="logoutBtn">Logout</button>
+</div>
+
+<script>
+  // Initialize application data
+  let users = [];
+  let currentUser = null;
+  let map = null;
+  let marker = null;
+  
+  // Vital thresholds
+  const vitalThresholds = {
+    hr: { normal: [60, 100], warning: [50, 60, 100, 120], danger: [0, 50, 120, 300] },
+    spo2: { normal: [95, 100], warning: [90, 95], danger: [0, 90] },
+    bp: { 
+      normal: { systolic: [90, 120], diastolic: [60, 80] },
+      warning: { systolic: [120, 140], diastolic: [80, 90] },
+      danger: { systolic: [140, 300], diastolic: [90, 300] }
+    },
+    creatinine: { normal: [0.6, 1.2], warning: [1.2, 1.5], danger: [1.5, 10] },
+    emg: { normal: ["Normal"], warning: ["Slightly Abnormal"], danger: ["Abnormal", "Critical"] },
+    ecg: { normal: ["Stable"], warning: ["Irregular"], danger: ["Unstable", "Critical"] }
+  };
+
+  // Emergency protocols
+  const protocols = {
+    hr: {
+      warning: "Your heart rate is slightly abnormal. Try to relax and sit down. Avoid caffeine and stress.",
+      danger: "EMERGENCY: Your heart rate is dangerously abnormal. Sit down immediately and call emergency services if symptoms persist."
+    },
+    spo2: {
+      warning: "Your oxygen levels are slightly low. Try deep breathing exercises and ensure good ventilation.",
+      danger: "EMERGENCY: Your oxygen levels are dangerously low. Seek medical attention immediately."
+    },
+    bp: {
+      warning: "Your blood pressure is elevated. Rest and avoid salty foods. Monitor your pressure.",
+      danger: "EMERGENCY: Your blood pressure is critically high. Seek medical attention immediately."
+    },
+    creatinine: {
+      warning: "Your creatinine levels are elevated. Increase water intake and consult your doctor.",
+      danger: "EMERGENCY: Your creatinine levels are dangerously high. Seek immediate medical attention."
+    },
+    emg: {
+      warning: "Your muscle activity shows slight abnormalities. Rest and avoid strenuous activities.",
+      danger: "EMERGENCY: Abnormal muscle activity detected. Seek medical attention if symptoms persist."
+    },
+    ecg: {
+      warning: "Your ECG shows slight irregularities. Monitor your condition and rest.",
+      danger: "EMERGENCY: Critical ECG abnormalities detected. Seek immediate medical attention."
+    }
+  };
+
+  // Initialize the application when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    // Hide loader immediately
+    const loader = document.getElementById('loader');
+    loader.style.opacity = '0';
+    setTimeout(() => loader.style.display = 'none', 200);
+    
+    // Initialize app
+    initApp();
+    
+    // Add hover effects for desktop
+    if (window.innerWidth > 768) {
+      document.querySelectorAll('button, .card, .alert-item').forEach(el => {
+        el.classList.add('hover-enabled');
+      });
+    }
+  });
+
+  function initApp() {
+    try {
+      // Load user data
+      loadUserData();
+      
+      // Setup event listeners
+      setupEventListeners();
+      
+      // Always show login page first unless already logged in
+      if (currentUser) {
+        showPage('dashboardPage');
+        updateUserDisplay();
+        checkVitals();
+      } else {
+        showPage('loginPage');
+      }
+      
+    } catch (error) {
+      console.error('Initialization error:', error);
+      showPage('loginPage');
+    }
+  }
+
+  function loadUserData() {
+    try {
+      const usersData = localStorage.getItem('cardioHealthUsers');
+      const userData = localStorage.getItem('currentUser');
+      
+      users = usersData ? JSON.parse(usersData) : [];
+      currentUser = userData ? JSON.parse(userData) : null;
+      
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      users = [];
+      currentUser = null;
+    }
+  }
+
+  function setupEventListeners() {
+    // Login/Register forms
+    document.getElementById('loginBtn').addEventListener('click', login);
+    document.getElementById('registerBtn').addEventListener('click', register);
+    document.getElementById('showRegisterLink').addEventListener('click', function(e) {
+      e.preventDefault();
+      showRegisterForm();
+    });
+    document.getElementById('showLoginLink').addEventListener('click', function(e) {
+      e.preventDefault();
+      showLoginForm();
+    });
+    
+    // Navigation buttons
+    document.getElementById('dashboardBtn').addEventListener('click', function() {
+      if (currentUser) {
+        showPage('dashboardPage');
+        setActiveNavButton('dashboardBtn');
+      }
+    });
+    
+    document.getElementById('alertsBtn').addEventListener('click', function() {
+      if (currentUser) {
+        showPage('alertsPage');
+        setActiveNavButton('alertsBtn');
+      }
+    });
+    
+    document.getElementById('locationBtn').addEventListener('click', function() {
+      if (currentUser) {
+        showPage('locationPage');
+        setActiveNavButton('locationBtn');
+      }
+    });
+    
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('emergencyBtn').addEventListener('click', sendEmergencyAlert);
+    document.getElementById('updateLocationBtn').addEventListener('click', updateLocation);
+    
+    // Form submissions on Enter key
+    document.getElementById('loginForm').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') login();
+    });
+    
+    document.getElementById('registerForm').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') register();
+    });
+    
+    // Add click effects to all buttons
+    document.querySelectorAll('button').forEach(button => {
+      button.addEventListener('mousedown', function() {
+        this.style.transform = 'translateY(1px)';
+      });
+      button.addEventListener('mouseup', function() {
+        this.style.transform = '';
+      });
+      button.addEventListener('mouseleave', function() {
+        this.style.transform = '';
+      });
+    });
+    
+    // Add card click effects
+    document.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', function() {
+        const protocol = this.querySelector('.protocol');
+        if (protocol) {
+          protocol.style.display = protocol.style.display === 'block' ? 'none' : 'block';
+        }
+      });
+    });
+  }
+
+  function setActiveNavButton(buttonId) {
+    document.querySelectorAll('.nav button').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.getElementById(buttonId).classList.add('active');
+  }
+
+  function showPage(id) {
+    // Hide all pages
+    document.querySelectorAll('.page').forEach(page => {
+      page.classList.remove('active');
+    });
+    
+    // Show requested page
+    const page = document.getElementById(id);
+    if (page) {
+      page.classList.add('active');
+      
+      // Special handling for location page
+      if (id === 'locationPage') {
+        loadMap();
+      }
+    }
+    
+    // Handle authentication for protected pages
+    if (id !== 'loginPage' && !currentUser) {
+      showPage('loginPage');
+    }
+  }
+
+  function showRegisterForm() {
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('registerForm').style.display = 'block';
+  }
+
+  function showLoginForm() {
+    document.getElementById('registerForm').style.display = 'none';
+    document.getElementById('loginForm').style.display = 'block';
+  }
+
+  function login() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+    
+    if (!email || !password) {
+      alert("Please enter both email and password.");
+      return;
+    }
+    
+    const user = users.find(u => u.email === email && u.password === password);
+    if (user) {
+      currentUser = user;
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      showPage('dashboardPage');
+      setActiveNavButton('dashboardBtn');
+      updateUserDisplay();
+      checkVitals();
+    } else {
+      alert("Invalid email or password. Please try again.");
+    }
+  }
+
+  function register() {
+    const fullName = document.getElementById("fullName").value.trim();
+    const age = document.getElementById("age").value.trim();
+    const gender = document.getElementById("gender").value;
+    const email = document.getElementById("newEmail").value.trim();
+    const password = document.getElementById("newPassword").value.trim();
+    const confirmPassword = document.getElementById("confirmPassword").value.trim();
+    
+    if (!fullName || !age || !gender || !email || !password || !confirmPassword) {
+      alert("Please fill in all fields.");
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      alert("Passwords do not match.");
+      return;
+    }
+    
+    if (users.some(u => u.email === email)) {
+      alert("Email already registered. Please login instead.");
+      showLoginForm();
+      return;
+    }
+    
+    const newUser = {
+      fullName,
+      age,
+      gender,
+      email,
+      password,
+      vitals: {
+        hr: Math.floor(Math.random() * 40) + 60,
+        spo2: Math.floor(Math.random() * 6) + 95,
+        bp: `${Math.floor(Math.random() * 30) + 110}/${Math.floor(Math.random() * 20) + 70}`,
+        creatinine: (Math.random() * 1.5).toFixed(1),
+        emg: Math.random() > 0.8 ? "Abnormal" : (Math.random() > 0.6 ? "Slightly Abnormal" : "Normal"),
+        ecg: Math.random() > 0.8 ? "Unstable" : (Math.random() > 0.6 ? "Irregular" : "Stable")
+      }
+    };
+    
+    users.push(newUser);
+    localStorage.setItem('cardioHealthUsers', JSON.stringify(users));
+    
+    currentUser = newUser;
+    localStorage.setItem('currentUser', JSON.stringify(newUser));
+    
+    alert("Registration successful! You are now logged in.");
+    showPage('dashboardPage');
+    setActiveNavButton('dashboardBtn');
+    updateUserDisplay();
+    checkVitals();
+  }
+
+  function logout() {
+    currentUser = null;
+    localStorage.removeItem('currentUser');
+    showPage('loginPage');
+    showLoginForm();
+    document.querySelectorAll('.nav button').forEach(btn => {
+      btn.classList.remove('active');
+    });
+  }
+
+  function updateUserDisplay() {
+    if (!currentUser) return;
+    
+    document.getElementById('welcomeMessage').textContent = `Welcome, ${currentUser.fullName}`;
+    document.getElementById('displayName').textContent = currentUser.fullName;
+    document.getElementById('displayAge').textContent = currentUser.age;
+    document.getElementById('displayGender').textContent = currentUser.gender.charAt(0).toUpperCase() + currentUser.gender.slice(1);
+    document.getElementById('displayEmail').textContent = currentUser.email;
+    
+    // Update vitals display
+    document.getElementById('hr').textContent = `${currentUser.vitals.hr} bpm`;
+    document.getElementById('spo2').textContent = `${currentUser.vitals.spo2}%`;
+    document.getElementById('bp').textContent = currentUser.vitals.bp;
+    document.getElementById('creatinine').textContent = `${currentUser.vitals.creatinine} mg/dL`;
+    document.getElementById('emg').textContent = currentUser.vitals.emg;
+    document.getElementById('ecg').textContent = currentUser.vitals.ecg;
+  }
+
+  function checkVitals() {
+    if (!currentUser) return;
+    
+    let overallStatus = 'normal';
+    
+    // Check heart rate
+    const hr = currentUser.vitals.hr;
+    const hrCard = document.getElementById('hrCard');
+    const hrProtocol = document.getElementById('hrProtocol');
+    
+    if (hr >= vitalThresholds.hr.danger[2] || hr <= vitalThresholds.hr.danger[1]) {
+      hrCard.classList.add('danger');
+      hrCard.classList.remove('warning');
+      hrProtocol.textContent = protocols.hr.danger;
+      hrProtocol.style.display = 'block';
+      overallStatus = 'danger';
+      createAlert('Abnormal Heart Rate', 'danger');
+    } else if (hr >= vitalThresholds.hr.warning[2] || hr <= vitalThresholds.hr.warning[1]) {
+      hrCard.classList.add('warning');
+      hrCard.classList.remove('danger');
+      hrProtocol.textContent = protocols.hr.warning;
+      hrProtocol.style.display = 'block';
+      if (overallStatus !== 'danger') overallStatus = 'warning';
+      createAlert('Slightly Abnormal Heart Rate', 'warning');
+    } else {
+      hrCard.classList.remove('warning', 'danger');
+      hrProtocol.style.display = 'none';
+    }
+    
+    // Check SpO2
+    const spo2 = currentUser.vitals.spo2;
+    const spo2Card = document.getElementById('spo2Card');
+    const spo2Protocol = document.getElementById('spo2Protocol');
+    
+    if (spo2 <= vitalThresholds.spo2.danger[1]) {
+      spo2Card.classList.add('danger');
+      spo2Card.classList.remove('warning');
+      spo2Protocol.textContent = protocols.spo2.danger;
+      spo2Protocol.style.display = 'block';
+      overallStatus = 'danger';
+      createAlert('Low Oxygen Level', 'danger');
+    } else if (spo2 <= vitalThresholds.spo2.warning[1]) {
+      spo2Card.classList.add('warning');
+      spo2Card.classList.remove('danger');
+      spo2Protocol.textContent = protocols.spo2.warning;
+      spo2Protocol.style.display = 'block';
+      if (overallStatus !== 'danger') overallStatus = 'warning';
+      createAlert('Slightly Low Oxygen Level', 'warning');
+    } else {
+      spo2Card.classList.remove('warning', 'danger');
+      spo2Protocol.style.display = 'none';
+    }
+    
+    // Check blood pressure
+    const bpParts = currentUser.vitals.bp.split('/');
+    const systolic = parseInt(bpParts[0]);
+    const diastolic = parseInt(bpParts[1]);
+    const bpCard = document.getElementById('bpCard');
+    const bpProtocol = document.getElementById('bpProtocol');
+    let bpStatus = 'normal';
+    
+    if (systolic >= vitalThresholds.bp.danger.systolic[0] || diastolic >= vitalThresholds.bp.danger.diastolic[0]) {
+      bpCard.classList.add('danger');
+      bpCard.classList.remove('warning');
+      bpProtocol.textContent = protocols.bp.danger;
+      bpProtocol.style.display = 'block';
+      bpStatus = 'danger';
+      createAlert('High Blood Pressure', 'danger');
+    } else if (systolic >= vitalThresholds.bp.warning.systolic[0] || diastolic >= vitalThresholds.bp.warning.diastolic[0]) {
+      bpCard.classList.add('warning');
+      bpCard.classList.remove('danger');
+      bpProtocol.textContent = protocols.bp.warning;
+      bpProtocol.style.display = 'block';
+      bpStatus = 'warning';
+      createAlert('Elevated Blood Pressure', 'warning');
+    } else {
+      bpCard.classList.remove('warning', 'danger');
+      bpProtocol.style.display = 'none';
+    }
+    
+    // Check EMG
+    const emg = currentUser.vitals.emg;
+    const emgCard = document.getElementById('emgCard');
+    const emgProtocol = document.getElementById('emgProtocol');
+    
+    if (vitalThresholds.emg.danger.includes(emg)) {
+      emgCard.classList.add('danger');
+      emgCard.classList.remove('warning');
+      emgProtocol.textContent = protocols.emg.danger;
+      emgProtocol.style.display = 'block';
+      overallStatus = 'danger';
+      createAlert('Abnormal Muscle Activity', 'danger');
+    } else if (vitalThresholds.emg.warning.includes(emg)) {
+      emgCard.classList.add('warning');
+      emgCard.classList.remove('danger');
+      emgProtocol.textContent = protocols.emg.warning;
+      emgProtocol.style.display = 'block';
+      if (overallStatus !== 'danger') overallStatus = 'warning';
+      createAlert('Slightly Abnormal Muscle Activity', 'warning');
+    } else {
+      emgCard.classList.remove('warning', 'danger');
+      emgProtocol.style.display = 'none';
+    }
+    
+    // Check ECG
+    const ecg = currentUser.vitals.ecg;
+    const ecgCard = document.getElementById('ecgCard');
+    const ecgProtocol = document.getElementById('ecgProtocol');
+    
+    if (vitalThresholds.ecg.danger.includes(ecg)) {
+      ecgCard.classList.add('danger');
+      ecgCard.classList.remove('warning');
+      ecgProtocol.textContent = protocols.ecg.danger;
+      ecgProtocol.style.display = 'block';
+      overallStatus = 'danger';
+      createAlert('Abnormal ECG', 'danger');
+    } else if (vitalThresholds.ecg.warning.includes(ecg)) {
+      ecgCard.classList.add('warning');
+      ecgCard.classList.remove('danger');
+      ecgProtocol.textContent = protocols.ecg.warning;
+      ecgProtocol.style.display = 'block';
+      if (overallStatus !== 'danger') overallStatus = 'warning';
+      createAlert('Irregular ECG', 'warning');
+    } else {
+      ecgCard.classList.remove('warning', 'danger');
+      ecgProtocol.style.display = 'none';
+    }
+    
+    // Update overall status
+    const heartStatus = document.getElementById('heartStatus');
+    heartStatus.className = 'status ' + overallStatus;
+    heartStatus.textContent = `Heart Status: ${overallStatus.charAt(0).toUpperCase() + overallStatus.slice(1)}`;
+  }
+
+  function createAlert(issue, severity) {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    const alertItem = document.createElement('div');
+    alertItem.className = 'alert-item ' + (severity === 'danger' ? 'emergency' : '');
+    alertItem.innerHTML = `
+      <strong>Time:</strong> ${timeString}<br>
+      <strong>Issue:</strong> ${issue}<br>
+      <strong>Status:</strong> ${severity === 'danger' ? 'Emergency alert sent' : 'Monitoring'}
+    `;
+    
+    document.getElementById('alertsContainer').prepend(alertItem);
+    
+    if (severity === 'danger') {
+      alert(`EMERGENCY: ${issue}\n\n${protocols[getVitalFromIssue(issue)].danger}`);
+    }
+  }
+
+  function getVitalFromIssue(issue) {
+    if (issue.includes('Heart')) return 'hr';
+    if (issue.includes('Oxygen')) return 'spo2';
+    if (issue.includes('Blood')) return 'bp';
+    if (issue.includes('Creatinine')) return 'creatinine';
+    if (issue.includes('Muscle')) return 'emg';
+    if (issue.includes('ECG')) return 'ecg';
+    return '';
+  }
+
+  function sendEmergencyAlert() {
+    if (!currentUser) {
+      alert("Please login first");
+      showPage('loginPage');
+      return;
+    }
+    
+    const now = new Date();
+    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    const alertItem = document.createElement('div');
+    alertItem.className = 'alert-item emergency';
+    alertItem.innerHTML = `
+      <strong>Time:</strong> ${timeString}<br>
+      <strong>Issue:</strong> Emergency Alert<br>
+      <strong>Status:</strong> Sent to medical team
+    `;
+    
+    document.getElementById('alertsContainer').prepend(alertItem);
+    
+    // Include location in emergency alert
+    let locationText = "Location unknown";
+    if (currentUser.lastLocation) {
+      locationText = `Location: ${currentUser.lastLocation.lat.toFixed(6)}, ${currentUser.lastLocation.lng.toFixed(6)}`;
+    }
+    
+    alert(`EMERGENCY ALERT SENT TO YOUR MEDICAL TEAM!\n\n${locationText}\n\nPlease stay calm and wait for assistance.`);
+  }
+
+  function loadMap() {
+    const mapElement = document.getElementById('map');
+    mapElement.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #666;">Loading map...</div>';
+    
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          
+          // Store location
+          currentUser.lastLocation = {
+            lat: lat,
+            lng: lng,
+            timestamp: new Date()
+          };
+          localStorage.setItem('currentUser', JSON.stringify(currentUser));
+          
+          // Display coordinates
+          document.getElementById('locationInfo').innerHTML = `
+            Last updated: ${new Date().toLocaleTimeString()}<br>
+            Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}
+          `;
+          
+          // Initialize Google Maps
+          map = new google.maps.Map(mapElement, {
+            center: { lat, lng },
+            zoom: 15,
+          });
+          
+          marker = new google.maps.Marker({
+            position: { lat, lng },
+            map: map,
+            title: "Your Location"
+          });
+        },
+        (error) => {
+          mapElement.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #666;">Could not retrieve your location. Please enable location services.</div>';
+          console.error('Geolocation error:', error);
+        }
+      );
+    } else {
+      mapElement.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #666;">Geolocation is not supported by your browser.</div>';
+    }
+  }
+
+  function updateLocation() {
+    loadMap();
+  }
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAOJqgGpUrncAvBE46EZ7v23NkVrQEoIxE&callback=initMap"></script>
+</body>
+</html>
